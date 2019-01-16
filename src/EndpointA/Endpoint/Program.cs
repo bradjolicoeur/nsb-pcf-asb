@@ -18,6 +18,8 @@ namespace EndpointClient
 
         public static IConfigurationRoot configuration;
 
+        private static Guid EndpointId = Guid.NewGuid();
+
         static async Task Main()
         {
             // Create service collection
@@ -33,19 +35,20 @@ namespace EndpointClient
             var endpointInstance = await Endpoint.Start(endpointConfiguration)
                 .ConfigureAwait(false);
 
+            Console.WriteLine("ENDPOINT READY");
+
             while (true)
             {
 
                 var guid = Guid.NewGuid();
                 Console.WriteLine($"Requesting to get data by id: {guid:N}");
 
-                //TODO: Send message
                 var message = new RequestDataMessage
                 {
                     DataId = guid,
-                    String = "String property value"
+                    String = EndpointId.ToString()
                 };
-                await endpointInstance.Send("Samples.AzureServiceBus.Server", message)
+                await endpointInstance.Send("Samples.AzureServiceBus.EndpointB", message)
                     .ConfigureAwait(false);
 
                 // Sleep as long as you need.
@@ -59,7 +62,7 @@ namespace EndpointClient
         {
 
             var endpointConfiguration = new EndpointConfiguration(configuration.GetSection("EndpointName").Value);
-            endpointConfiguration.UsePersistence<LearningPersistence>();
+
             var transport = endpointConfiguration.UseTransport<AzureServiceBusTransport>();
             transport.ConnectionString(GetConnectionString());
 
@@ -77,7 +80,6 @@ namespace EndpointClient
 
             return endpointConfiguration;
 
-            throw new NotImplementedException();
         }
 
         private static void ConfigureConventions(ConventionsBuilder conventions)

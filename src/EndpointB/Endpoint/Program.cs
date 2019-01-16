@@ -6,10 +6,8 @@ using Steeltoe.Extensions.Configuration.CloudFoundry;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using Example.NServiceBus.Messages;
 
-namespace EndpointServer
+namespace EndpointB
 {
     class Program
     {
@@ -34,8 +32,13 @@ namespace EndpointServer
             var endpointInstance = await Endpoint.Start(endpointConfiguration)
                 .ConfigureAwait(false);
 
-            Console.WriteLine("Press any key to exit");
-            Console.ReadKey();
+            Console.WriteLine("ENDPOINT READY");
+
+            while (true)
+            { 
+                //just keep on trucking
+            }
+
         }
 
         private static EndpointConfiguration ConfigureNSB(ServiceCollection serviceCollection)
@@ -46,6 +49,10 @@ namespace EndpointServer
             var transport = endpointConfiguration.UseTransport<AzureServiceBusTransport>();
 
             var connectionString = GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new Exception("Could not read the 'AzureServiceBus_ConnectionString' environment variable. Check the sample prerequisites.");
+            }
             transport.ConnectionString(connectionString);
 
             var conventions = endpointConfiguration.Conventions();

@@ -3,8 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <AssemblyName>EndpointServer</AssemblyName>
-    <RootNamespace>EndpointServer</RootNamespace>
+    <AssemblyName>EndpointB</AssemblyName>
+    <RootNamespace>EndpointB</RootNamespace>
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
 

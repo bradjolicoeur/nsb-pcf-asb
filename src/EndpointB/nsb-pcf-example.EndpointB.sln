@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2016
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Endpoint.Server", "Endpoint\Endpoint.Server.csproj", "{209FC13A-E9D6-4D04-999C-BB9AE5A3618C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EndpointB", "Endpoint\EndpointB.csproj", "{209FC13A-E9D6-4D04-999C-BB9AE5A3618C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
