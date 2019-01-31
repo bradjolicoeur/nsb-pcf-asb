@@ -8,10 +8,11 @@ namespace EndpointClient
 {
     public class DataResponseMessageHandler : IHandleMessages<DataResponseMessage>
     {
+        static ILog log = LogManager.GetLogger<DataResponseMessageHandler>();
 
         public Task Handle(DataResponseMessage message, IMessageHandlerContext context)
         {
-            Console.WriteLine($"Completed Message: {message.DataId} for endpoint {message.String}");
+            log.Info($"Completed Message: {message.DataId} for endpoint {message.String}");
             return Task.CompletedTask;
         }
     }

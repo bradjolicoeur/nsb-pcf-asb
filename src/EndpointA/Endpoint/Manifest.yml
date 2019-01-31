@@ -1,0 +1,8 @@
+﻿---
+applications:
+- name: nsb-pcf-asb-endpointA
+  disk_quota: 128M
+  no-route: true
+  health-check-type: process
+  buildpack: https://github.com/cloudfoundry/dotnet-core-buildpack
+  services:

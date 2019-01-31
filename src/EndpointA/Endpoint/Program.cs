@@ -13,6 +13,8 @@ namespace EndpointClient
 {
     class Program
     {
+        private static ILog log;
+
         // AutoResetEvent to signal when to exit the application.
         private static readonly AutoResetEvent waitHandle = new AutoResetEvent(false);
 
@@ -26,22 +28,23 @@ namespace EndpointClient
             ServiceCollection serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
-            Console.Title = configuration.GetSection("EndpointName").Value;
+            Console.Title = configuration.GetValue<string>("EndpointName");
             LogManager.Use<DefaultFactory>()
                 .Level(LogLevel.Info);
+            log = LogManager.GetLogger<Program>();
 
             EndpointConfiguration endpointConfiguration = ConfigureNSB(serviceCollection);
 
             var endpointInstance = await Endpoint.Start(endpointConfiguration)
                 .ConfigureAwait(false);
 
-            Console.WriteLine("ENDPOINT READY");
+            log.Info("ENDPOINT READY");
 
             while (true)
             {
 
                 var guid = Guid.NewGuid();
-                Console.WriteLine($"Requesting to get data by id: {guid:N}");
+                log.Info($"Requesting to get data by id: {guid:N}");
 
                 var message = new RequestDataMessage
                 {
@@ -61,7 +64,7 @@ namespace EndpointClient
         private static EndpointConfiguration ConfigureNSB(ServiceCollection serviceCollection)
         {
 
-            var endpointConfiguration = new EndpointConfiguration(configuration.GetSection("EndpointName").Value);
+            var endpointConfiguration = new EndpointConfiguration(configuration.GetValue<string>("EndpointName"));
 
             var transport = endpointConfiguration.UseTransport<AzureServiceBusTransport>();
             transport.ConnectionString(GetConnectionString());
@@ -80,6 +83,31 @@ namespace EndpointClient
 
             return endpointConfiguration;
 
+        }
+
+        
+
+        private static void ConfigureServices(ServiceCollection serviceCollection)
+        {
+            configuration = new ConfigurationBuilder()
+               .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+               .AddEnvironmentVariables()
+               .AddCloudFoundry()
+               .Build();
+
+            // Add access to generic IConfigurationRoot
+            serviceCollection.AddSingleton<IConfigurationRoot>(configuration);
+        }
+
+        private static string GetConnectionString()
+        {
+            string local = configuration.GetValue<string>("AzureServiceBus_ConnectionString");
+            if (string.IsNullOrEmpty(local))
+                throw new Exception("Environment Variable 'AzureServiceBus_ConnectionString' not set");
+
+            return local;
+
+            
         }
 
         private static void ConfigureConventions(ConventionsBuilder conventions)
@@ -118,43 +146,6 @@ namespace EndpointClient
                     }
                     return TimeSpan.MaxValue;
                 });
-        }
-
-        private static void ConfigureServices(ServiceCollection serviceCollection)
-        {
-            configuration = new ConfigurationBuilder()
-               .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-               .AddEnvironmentVariables()
-               .AddCloudFoundry()
-               .Build();
-
-            // Add access to generic IConfigurationRoot
-            serviceCollection.AddSingleton<IConfigurationRoot>(configuration);
-        }
-
-        private static string GetConnectionString()
-        {
-            string local = Environment.GetEnvironmentVariable("AzureServiceBus_ConnectionString");
-            if (!string.IsNullOrEmpty(local))
-                return local;
-
-            //TODO: convert to use azure sb enviornment variable
-            var credentials = "$..[?(@.name=='rabbitmq')].credentials";
-            var jObj = JObject.Parse(Environment.GetEnvironmentVariable("VCAP_SERVICES"));
-
-            if (jObj.SelectToken($"{credentials}") == null)
-                throw new Exception("Expects a PCF managed rabbitmq service binding named 'rabbitmq'");
-
-            var vhost = (string)jObj.SelectToken($"{credentials}.vhost");
-            var host = (string)jObj.SelectToken($"{credentials}.hostname");
-            var pwd = (string)jObj.SelectToken($"{credentials}.password");
-            var username = (string)jObj.SelectToken($"{credentials}.username");
-
-            string connectionString = $"host={host}; username={username}; password={pwd}; virtualhost={vhost}";
-
-            Console.Out.WriteLine(connectionString);
-
-            return connectionString;
         }
     }
 }
