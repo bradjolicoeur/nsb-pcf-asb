@@ -22,6 +22,8 @@ namespace EndpointClient
 
         private static Guid EndpointId = Guid.NewGuid();
 
+        private static IEndpointInstance EndpointInstance { get; set; }
+
         static async Task Main()
         {
             // Create service collection
@@ -35,8 +37,11 @@ namespace EndpointClient
 
             EndpointConfiguration endpointConfiguration = ConfigureNSB(serviceCollection);
 
-            var endpointInstance = await Endpoint.Start(endpointConfiguration)
+            EndpointInstance = await Endpoint.Start(endpointConfiguration)
                 .ConfigureAwait(false);
+
+            //Support Graceful Shut Down in PCF
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             log.Info("ENDPOINT READY");
 
@@ -51,14 +56,21 @@ namespace EndpointClient
                     DataId = guid,
                     String = EndpointId.ToString()
                 };
-                await endpointInstance.Send("Samples.AzureServiceBus.EndpointB", message)
+                await EndpointInstance.Send("Samples.AzureServiceBus.EndpointB", message)
                     .ConfigureAwait(false);
 
                 // Sleep as long as you need.
                 Thread.Sleep(1000);
             }
 
+        }
 
+        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        {
+            if (EndpointInstance != null)
+            { EndpointInstance.Stop().ConfigureAwait(false); }
+            
+            log.Info("Exiting!");
         }
 
         private static EndpointConfiguration ConfigureNSB(ServiceCollection serviceCollection)
@@ -84,8 +96,6 @@ namespace EndpointClient
             return endpointConfiguration;
 
         }
-
-        
 
         private static void ConfigureServices(ServiceCollection serviceCollection)
         {
@@ -113,10 +123,10 @@ namespace EndpointClient
         private static void ConfigureConventions(ConventionsBuilder conventions)
         {
             conventions.DefiningCommandsAs(
-                            type =>
-                            {
-                                return type.Namespace == "Example.NServiceBus.Messages.Commands";
-                            });
+                type =>
+                {
+                    return type.Namespace == "Example.NServiceBus.Messages.Commands";
+                });
             conventions.DefiningEventsAs(
                 type =>
                 {
