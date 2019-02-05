@@ -15,9 +15,6 @@ namespace EndpointClient
     {
         private static ILog log;
 
-        // AutoResetEvent to signal when to exit the application.
-        private static readonly AutoResetEvent waitHandle = new AutoResetEvent(false);
-
         public static IConfigurationRoot configuration;
 
         private static Guid EndpointId = Guid.NewGuid();
@@ -30,17 +27,22 @@ namespace EndpointClient
             ServiceCollection serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
+            //Set console title
             Console.Title = configuration.GetValue<string>("EndpointName");
+
+            //Configure logging
             LogManager.Use<DefaultFactory>()
                 .Level(LogLevel.Info);
             log = LogManager.GetLogger<Program>();
 
+            //Configure NSB Endpoint
             EndpointConfiguration endpointConfiguration = ConfigureNSB(serviceCollection);
 
+            //Start NSB Endpoint
             EndpointInstance = await Endpoint.Start(endpointConfiguration)
                 .ConfigureAwait(false);
 
-            //Support Graceful Shut Down in PCF
+            //Support Graceful Shut Down of NSB Endpoint in PCF
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             log.Info("ENDPOINT READY");
@@ -51,11 +53,14 @@ namespace EndpointClient
                 var guid = Guid.NewGuid();
                 log.Info($"Requesting to get data by id: {guid:N}");
 
+                //create a message
                 var message = new RequestDataMessage
                 {
                     DataId = guid,
                     String = EndpointId.ToString()
                 };
+
+                //Send a message to a specific queue
                 await EndpointInstance.Send("Samples.AzureServiceBus.EndpointB", message)
                     .ConfigureAwait(false);
 
@@ -84,7 +89,8 @@ namespace EndpointClient
             var conventions = endpointConfiguration.Conventions();
             ConfigureConventions(conventions);
 
-            endpointConfiguration.EnableInstallers();
+            endpointConfiguration.EnableInstallers(); //not for production
+
             endpointConfiguration.SendFailedMessagesTo("error");
 
             endpointConfiguration.UseContainer<ServicesBuilder>(
@@ -111,13 +117,13 @@ namespace EndpointClient
 
         private static string GetConnectionString()
         {
-            string local = configuration.GetValue<string>("AzureServiceBus_ConnectionString");
-            if (string.IsNullOrEmpty(local))
+            string connection = configuration.GetValue<string>("AzureServiceBus_ConnectionString");
+
+            if (string.IsNullOrEmpty(connection))
                 throw new Exception("Environment Variable 'AzureServiceBus_ConnectionString' not set");
 
-            return local;
+            return connection;
 
-            
         }
 
         private static void ConfigureConventions(ConventionsBuilder conventions)

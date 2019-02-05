@@ -11,11 +11,11 @@ namespace EndpointB
 {
     class Program
     {
-        // AutoResetEvent to signal when to exit the application.
-        private static readonly AutoResetEvent waitHandle = new AutoResetEvent(false);
+        private static ILog log;
 
         public static IConfigurationRoot configuration;
 
+        private static IEndpointInstance EndpointInstance { get; set; }
 
         static async Task Main()
         {
@@ -23,14 +23,23 @@ namespace EndpointB
             ServiceCollection serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
+            //Set console title
             Console.Title = configuration.GetSection("EndpointName").Value;
+
+            //Configure logging
             LogManager.Use<DefaultFactory>()
                 .Level(LogLevel.Info);
+            log = LogManager.GetLogger<Program>();
 
+            //Configure NSB Endpoint
             EndpointConfiguration endpointConfiguration = ConfigureNSB(serviceCollection);
 
-            var endpointInstance = await Endpoint.Start(endpointConfiguration)
+            //Start NSB Endpoint
+            EndpointInstance = await Endpoint.Start(endpointConfiguration)
                 .ConfigureAwait(false);
+
+            //Support Graceful Shut Down of NSB Endpoint in PCF
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
             Console.WriteLine("ENDPOINT READY");
 
@@ -71,13 +80,21 @@ namespace EndpointB
 
         }
 
+        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        {
+            if (EndpointInstance != null)
+            { EndpointInstance.Stop().ConfigureAwait(false); }
+
+            log.Info("Exiting!");
+        }
+
         private static void ConfigureConventions(ConventionsBuilder conventions)
         {
             conventions.DefiningCommandsAs(
-                            type =>
-                            {
-                                return type.Namespace == "Example.NServiceBus.Messages.Commands";
-                            });
+                type =>
+                {
+                    return type.Namespace == "Example.NServiceBus.Messages.Commands";
+                });
             conventions.DefiningEventsAs(
                 type =>
                 {
@@ -123,27 +140,13 @@ namespace EndpointB
 
         private static string GetConnectionString()
         {
-            string local = Environment.GetEnvironmentVariable("AzureServiceBus_ConnectionString");
-           // if (!string.IsNullOrEmpty(local))
-                return local;
+            string connection = Environment.GetEnvironmentVariable("AzureServiceBus_ConnectionString");
 
-            ////TODO: convert to use azure sb enviornment variable
-            //var credentials = "$..[?(@.name=='rabbitmq')].credentials";
-            //var jObj = JObject.Parse(Environment.GetEnvironmentVariable("VCAP_SERVICES"));
+            if (string.IsNullOrEmpty(connection))
+                throw new Exception("Environment Variable 'AzureServiceBus_ConnectionString' not set");
 
-            //if (jObj.SelectToken($"{credentials}") == null)
-            //    throw new Exception("Expects a PCF managed rabbitmq service binding named 'rabbitmq'");
+            return connection;
 
-            //var vhost = (string)jObj.SelectToken($"{credentials}.vhost");
-            //var host = (string)jObj.SelectToken($"{credentials}.hostname");
-            //var pwd = (string)jObj.SelectToken($"{credentials}.password");
-            //var username = (string)jObj.SelectToken($"{credentials}.username");
-
-            //string connectionString = $"host={host}; username={username}; password={pwd}; virtualhost={vhost}";
-
-            //Console.Out.WriteLine(connectionString);
-
-            //return connectionString;
         }
     }
 }
