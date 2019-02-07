@@ -41,12 +41,9 @@ namespace EndpointB
             //Support Graceful Shut Down of NSB Endpoint in PCF
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
 
-            Console.WriteLine("ENDPOINT READY");
+            log.Info("ENDPOINT READY");
 
-            while (true)
-            { 
-                //just keep on trucking
-            }
+            Console.Read(); //keep service up and running.
 
         }
 
