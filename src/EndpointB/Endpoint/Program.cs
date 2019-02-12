@@ -35,8 +35,7 @@ namespace EndpointB
             EndpointConfiguration endpointConfiguration = ConfigureNSB(serviceCollection);
 
             //Start NSB Endpoint
-            EndpointInstance = await Endpoint.Start(endpointConfiguration)
-                .ConfigureAwait(false);
+            EndpointInstance = await Endpoint.Start(endpointConfiguration);
 
             //Support Graceful Shut Down of NSB Endpoint in PCF
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;

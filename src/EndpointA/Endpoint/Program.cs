@@ -39,8 +39,7 @@ namespace EndpointClient
             EndpointConfiguration endpointConfiguration = ConfigureNSB(serviceCollection);
 
             //Start NSB Endpoint
-            EndpointInstance = await Endpoint.Start(endpointConfiguration)
-                .ConfigureAwait(false);
+            EndpointInstance = await Endpoint.Start(endpointConfiguration);
 
             //Support Graceful Shut Down of NSB Endpoint in PCF
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
@@ -61,8 +60,7 @@ namespace EndpointClient
                 };
 
                 //Send a message to a specific queue
-                await EndpointInstance.Send("Samples.AzureServiceBus.EndpointB", message)
-                    .ConfigureAwait(false);
+                await EndpointInstance.Send("Samples.AzureServiceBus.EndpointB", message);
 
                 // Sleep as long as you need.
                 Thread.Sleep(1000);
